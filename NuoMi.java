@@ -22,7 +22,9 @@ public class NuoMi {
 	public static void main(String[] args) throws IOException {
 		//getRegionLink("D:/重庆基础数据抓取/基础数据/糯米网/");
 		//getPages("https://cq.nuomi.com/962/3402-page2?#j-sort-bar");
-		getAllLinks();
+		//getAllLinks();
+		getNuoMiContent("https://www.nuomi.com/deal/ylqvherr.html?s=bc901b1311f8d987cbc5d5da1e71f496",
+					"D:/重庆基础数据抓取/基础数据/糯米网/restrantDetails/");
 	}
 	public static String[] REGIONS={"3402","3558","3411","3377","3625","3385","3575","6753","6732","4201","3785","6754","6740","6746",
 			                        "6743","9606","6739","6741","6755","6735","6745","6736","6742","6749","6750","6747","6751","6738",
@@ -30,12 +32,17 @@ public class NuoMi {
 	public static String[] CATEGORY={"1000002","962","364","380","393","880","879","690","460","881","954","878","692","392","439","391",
 			                         "884","501","389","388","883","877","488","655", "691","390","653","424","451","694","695","652","504",
 			                          "450","887","654","509","885","454","696","876","889","886","888","693","874","697","327","882","890"};
+	/**
+	 * 获取商家的具体信息
+	 * @param link
+	 * @param folder
+	 */
 	public static void getNuoMiContent(String link,String folder){
 		try {
 			String content = Tool.fetchURL(link);
-			content = HTMLTool.fetchURL(link, "utf-8", "get");
+			//content = HTMLTool.fetchURL(link, "utf-8", "get");
 			System.out.println(content);
-			FileTool.Dump(content, folder + "content.txt", "utf-8");
+			//FileTool.Dump(content, folder + "content1.txt", "utf-8");
 			Parser parser = new Parser();
 			
 			JSONObject obj=new JSONObject();
@@ -100,16 +107,59 @@ public class NuoMi {
 				parser.reset();
 				//parentFilter1 = new HasParentFilter(new AndFilter(new TagNameFilter("article"),new HasAttributeFilter("mon", "merchantId=40893747")));
 				//parentFilter2 = new HasParentFilter(new AndFilter(new TagNameFilter("section"),new AndFilter(parentFilter1,new HasAttributeFilter("class", "mct-head"))));
-				filter = new AndFilter(new TagNameFilter("a"),new HasAttributeFilter("class", "mct-addr "));
+				filter = new AndFilter(new TagNameFilter("div"),new HasAttributeFilter("class", "w-package-deal"));
+				nodes = parser.extractAllNodesThatMatch(filter);
+				if (nodes.size() != 0) {
+					for (int n = 0; n < nodes.size(); n++) {
+						TagNode no = (TagNode) nodes.elementAt(n);
+						String str=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "").replace("套餐内容团单内容数量/规格小计", "")
+								.replace("套餐内容团单套餐套餐内容数量/规格小计", "").replace("套餐内容", "").replace("套餐", "");//套餐内容团单内容数量/规格小计单人自助晚餐1位98元
+						System.out.println(str);
+						obj.put("type", str);
+					}
+				}
+				
+				parser.reset();
+				filter = new AndFilter(new TagNameFilter("div"),new HasAttributeFilter("class", "multi-lines"));
 				nodes = parser.extractAllNodesThatMatch(filter);
 				if (nodes.size() != 0) {
 					for (int n = 0; n < nodes.size(); n++) {
 						TagNode no = (TagNode) nodes.elementAt(n);
 						String str=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
 						System.out.println(str);
-						obj.put("valid", str);
+						if(str.startsWith("有效期")){
+							no = (TagNode) nodes.elementAt(n+1);
+							str=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+							System.out.println(str);
+							obj.put("valid", "");
+						}else if(str.startsWith("可用时间")){
+							no = (TagNode) nodes.elementAt(n+1);
+							str=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+							System.out.println(str);
+							obj.put("validtime",str);
+						}else if(str.startsWith("预约提示")){
+							no = (TagNode) nodes.elementAt(n+1);
+							str=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+							System.out.println(str);
+							obj.put("appointment",str);
+						}else if(str.startsWith("使用规则")){
+							no = (TagNode) nodes.elementAt(n+1);
+							str=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+							System.out.println(str);
+							obj.put("userule",str);
+						}else if(str.startsWith("温馨提示")){
+							no = (TagNode) nodes.elementAt(n+1);
+							str=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+							System.out.println(str);
+							obj.put("reminder",str);
+						}
+						
 					}
+					
 				}
+				
+				System.out.println(obj);
+				
 			}
 			
 		}catch (ParserException e) {
