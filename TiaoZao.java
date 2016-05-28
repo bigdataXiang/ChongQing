@@ -1,5 +1,6 @@
 package com.svail.chongqing;
 
+import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,19 +27,21 @@ import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSFile;
 import com.svail.util.FileTool;
+import com.svail.util.HTMLTool;
 import com.svail.util.Tool;
 
 import net.sf.json.JSONObject;
 
 public class TiaoZao {
 	public static void main(String[] args){
-		/*
+		/**/
 		for(int i=1;i<=500;i++){
 			String link="http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page="+i;
 			getLink(link,"D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao");
+			System.out.println("完成第"+i+"页数据获取");
 		}
-		*/
-		fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
+		
+		//fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
 		//getLink("http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page=1", "D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao");
 	}
 	public static void archive(JSONObject jsonObject,GridFS grid) throws Exception {  
@@ -157,7 +160,8 @@ public class TiaoZao {
 	 */
 	public static void getLink(String link,String folder){
 		try{
-			String content = Tool.fetchURL(link);
+			//String content = Tool.fetchURL(link);
+			String content = HTMLTool.fetchURL(link, "utf-8", "get");
             Parser parser = new Parser();
 			JSONObject obj=new JSONObject();
 			
@@ -183,41 +187,41 @@ public class TiaoZao {
 						//System.out.println(obj);
 						
 						parser.reset();
-						parentFilter1 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
-						parentFilter2 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter1));
-						filter = new AndFilter(new TagNameFilter("p"), new AndFilter(parentFilter2,new HasAttributeFilter("class", "p-goods-cont fl color6")));
-						nodes = parser.extractAllNodesThatMatch(filter);
-						no = (TagNode) nodes.elementAt(i);
+						HasParentFilter parentFilter3 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
+						HasParentFilter parentFilter4 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter3));
+						NodeFilter filter1 = new AndFilter(new TagNameFilter("p"), new AndFilter(parentFilter4,new HasAttributeFilter("class", "p-goods-cont fl color6")));
+						NodeList nodes1 = parser.extractAllNodesThatMatch(filter1);
+						no = (TagNode) nodes1.elementAt(i);
 						String digest=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
 						obj.put("digest", digest);
 						
 						parser.reset();
-						parentFilter1 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
-						parentFilter2 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter1));
-						HasParentFilter parentFilter3 =new HasParentFilter(new AndFilter(new TagNameFilter("p"), new AndFilter(parentFilter2,new HasAttributeFilter("class", "p-goods-info fl color9"))));
-						filter = new AndFilter(new TagNameFilter("a"), new AndFilter(parentFilter3,new HasAttributeFilter("rel", "nofollow")));
-						nodes = parser.extractAllNodesThatMatch(filter);
-						no = (TagNode) nodes.elementAt(i);
+						parentFilter3 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
+						parentFilter4= new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter3));
+						HasParentFilter parentFilter5 =new HasParentFilter(new AndFilter(new TagNameFilter("p"), new AndFilter(parentFilter4,new HasAttributeFilter("class", "p-goods-info fl color9"))));
+						filter1 = new AndFilter(new TagNameFilter("a"), new AndFilter(parentFilter5,new HasAttributeFilter("rel", "nofollow")));
+						nodes1 = parser.extractAllNodesThatMatch(filter1);
+						no = (TagNode) nodes1.elementAt(i);
 						String location=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
 						obj.put("location", location);
 						
 						parser.reset();
-						parentFilter1 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
-						parentFilter2 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter1));
+						parentFilter3 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
+						parentFilter4 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter3));
 						//HasParentFilter parentFilter3 =new HasParentFilter(new AndFilter(new TagNameFilter("p"), new AndFilter(parentFilter2,new HasAttributeFilter("class", "p-goods-info fl color9"))));
-						filter = new AndFilter(new TagNameFilter("span"), new AndFilter(parentFilter2,new HasAttributeFilter("class", "p-goods-prise f14")));
-						nodes = parser.extractAllNodesThatMatch(filter);
-						no = (TagNode) nodes.elementAt(i);
+						filter1 = new AndFilter(new TagNameFilter("span"), new AndFilter(parentFilter4,new HasAttributeFilter("class", "p-goods-prise f14")));
+						nodes1 = parser.extractAllNodesThatMatch(filter1);
+						no = (TagNode) nodes1.elementAt(i);
 						String price=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
 						obj.put("price",price);
 						
 						parser.reset();
-						parentFilter1 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
-						parentFilter2 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter1));
+						parentFilter3 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"),new HasAttributeFilter("class", "p-goods-list link0 mb10")));
+						parentFilter4 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter3));
 						//HasParentFilter parentFilter3 =new HasParentFilter(new AndFilter(new TagNameFilter("p"), new AndFilter(parentFilter2,new HasAttributeFilter("class", "p-goods-info fl color9"))));
-						filter = new AndFilter(new TagNameFilter("span"), new AndFilter(parentFilter2,new HasAttributeFilter("class", "p-goods-trade color9")));
-						nodes = parser.extractAllNodesThatMatch(filter);
-						no = (TagNode) nodes.elementAt(i);
+						filter1 = new AndFilter(new TagNameFilter("span"), new AndFilter(parentFilter4,new HasAttributeFilter("class", "p-goods-trade color9")));
+						nodes1 = parser.extractAllNodesThatMatch(filter1);
+						no = (TagNode) nodes1.elementAt(i);
 						String time=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
 						obj.put("delivery_time", time);
 						
@@ -226,11 +230,24 @@ public class TiaoZao {
 						SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");
 						obj.put("crawl_time", sdf.format(d));
 						
-						
+						//System.out.println(obj);
 						FileTool.Dump(obj.toString(), folder+"-Content.txt", "utf-8");
 					}
+					try {
+						Thread.sleep(500 * ((int) (Math
+							.max(1, Math.random() * 3))));
+					} catch (final InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 				}
-				
+				try {
+					Thread.sleep(5000 * ((int) (Math
+						.max(1, Math.random() * 3))));
+				} catch (final InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			}
 			
 		}catch(ParserException e){
