@@ -33,12 +33,14 @@ import com.svail.util.Tool;
 import net.sf.json.JSONObject;
 
 public class TiaoZao {
+	public static String FOLDER="D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao";
 	public static void main(String[] args){
 		/**/
 		for(int i=1;i<=500;i++){
 			String link="http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page="+i;
-			getLink(link,"D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao");
+			getLink(link,FOLDER);
 			System.out.println("完成第"+i+"页数据获取");
+			FileTool.Dump("完成第"+i+"页数据获取", FOLDER+"crawlMonitor.txt", "utf-8");
 		}
 		
 		//fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
@@ -160,8 +162,8 @@ public class TiaoZao {
 	 */
 	public static void getLink(String link,String folder){
 		try{
-			//String content = Tool.fetchURL(link);
-			String content = HTMLTool.fetchURL(link, "utf-8", "get");
+			String content = Tool.fetchURL(link);
+			//String content = HTMLTool.fetchURL(link, "utf-8", "get");
             Parser parser = new Parser();
 			JSONObject obj=new JSONObject();
 			
