@@ -32,16 +32,24 @@ import net.sf.json.JSONObject;
 
 public class TiaoZao {
 	public static void main(String[] args){
-		
+		/*
 		for(int i=1;i<=500;i++){
 			String link="http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page="+i;
 			getLink(link,"D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao");
-		}		
+		}
+		*/
+		fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
 		//getLink("http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page=1", "D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao");
 	}
-	public static void archive(GridFS grid) throws Exception {  
+	public static void archive(JSONObject jsonObject,GridFS grid) throws Exception {  
 		GridFSFile document = grid.createFile();
-		document.put("","");
+		document.put("title",jsonObject.get("title"));
+		document.put("digest",jsonObject.get("digest"));
+		document.put("location",jsonObject.get("location"));
+		document.put("price",jsonObject.get("price"));
+		document.put("link",jsonObject.get("link"));
+		document.put("delivery_time",jsonObject.get("delivery_time"));
+		document.put("crawl_time",jsonObject.get("crawl_time"));
 		document.save();
 	}
 	/**
@@ -69,6 +77,17 @@ public class TiaoZao {
 							List<GridFSDBFile> rls = grid.find(dbo);
 							if (rls == null || rls.size() == 0)
 	    					{
+								try {
+									archive(jsonObject,grid);
+									
+								}catch (java.lang.NullPointerException e1) {
+		    						// TODO Auto-generated catch block
+		    						e1.printStackTrace();
+		    						//FileTool.Dump(photo.toString(), poiError, "utf-8");
+		    					} catch (Exception e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 								
 	    					}else{
 	    						System.out.println("该数据已经存在！");
@@ -200,12 +219,12 @@ public class TiaoZao {
 						nodes = parser.extractAllNodesThatMatch(filter);
 						no = (TagNode) nodes.elementAt(i);
 						String time=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
-						obj.put("time", time);
+						obj.put("delivery_time", time);
 						
 						
 						Date d = new Date();
 						SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");
-						obj.put("crawltime", sdf.format(d));
+						obj.put("crawl_time", sdf.format(d));
 						
 						
 						FileTool.Dump(obj.toString(), folder+"-Content.txt", "utf-8");
