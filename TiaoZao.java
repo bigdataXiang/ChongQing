@@ -3,6 +3,7 @@ package com.svail.chongqing;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
@@ -20,6 +21,8 @@ import org.htmlparser.util.ParserException;
 import com.google.gson.JsonSyntaxException;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
@@ -35,19 +38,20 @@ import net.sf.json.JSONObject;
 public class TiaoZao {
 	public static String FOLDER="D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao";
 	public static void main(String[] args){
-		/**/
+		/*
 		for(int i=1;i<=500;i++){
 			String link="http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page="+i;
 			getLink(link,FOLDER);
 			System.out.println("完成第"+i+"页数据获取");
 			FileTool.Dump("完成第"+i+"页数据获取", FOLDER+"crawlMonitor.txt", "utf-8");
 		}
+		*/
 		
-		//fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
+		fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
 		//getLink("http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page=1", "D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao");
 	}
-	public static void archive(JSONObject jsonObject,GridFS grid) throws Exception {  
-		GridFSFile document = grid.createFile();
+	public static BasicDBObject transfer(JSONObject jsonObject) throws Exception {  
+		BasicDBObject document = new BasicDBObject();
 		document.put("title",jsonObject.get("title"));
 		document.put("digest",jsonObject.get("digest"));
 		document.put("location",jsonObject.get("location"));
@@ -55,7 +59,7 @@ public class TiaoZao {
 		document.put("link",jsonObject.get("link"));
 		document.put("delivery_time",jsonObject.get("delivery_time"));
 		document.put("crawl_time",jsonObject.get("crawl_time"));
-		document.save();
+		return document;
 	}
 	/**
 	 * 
@@ -65,8 +69,9 @@ public class TiaoZao {
 		try {
 			Mongo mongo = new Mongo("192.168.6.9", 27017);
 			DB db = mongo.getDB("chongqing");  // 数据库名称
-			GridFS grid = new GridFS(db);
+			DBCollection coll = db.getCollection("TiaoZao");
 			JSONObject obj=new JSONObject();
+			List<DBObject> dbList = new ArrayList<DBObject>();  
 			Vector<String> ls = FileTool.Load(digist, "utf-8");
 			if (ls != null)
 			{
@@ -76,14 +81,15 @@ public class TiaoZao {
 					try {
 						JSONObject jsonObject =JSONObject.fromObject(poi);
 						if(jsonObject!=null){
-							DBObject dbo = new BasicDBObject();
+							BasicDBObject document = new BasicDBObject();
 							Object title=jsonObject.get("title");
-							dbo.put("title", title);
-							List<GridFSDBFile> rls = grid.find(dbo);
+							document.put("title", title);
+							DBCursor rls =coll.find(document);
 							if (rls == null || rls.size() == 0)
 	    					{
 								try {
-									archive(jsonObject,grid);
+									document=transfer(jsonObject);
+									dbList.add(document);
 									
 								}catch (java.lang.NullPointerException e1) {
 		    						// TODO Auto-generated catch block
@@ -105,6 +111,8 @@ public class TiaoZao {
 			    		e.printStackTrace();
 			    	}
 				}
+				coll.insert(dbList) ;
+				System.out.println("数据导入完毕！");
 				
 			}
 			
