@@ -24,8 +24,155 @@ import net.sf.json.JSONObject;
 public class XueQuFang {
 	public static void main(String[] args){
 		getHotRealEstate(FOLDER);
+		//getschoolDistrictHousing(FOLDER);
 	}
 	 static JSONObject jsonObjArr = new JSONObject();
+	 public static String  SchoolDistrictHousing="http://m.fang.com/xf/cq/";
+	 /**
+	  * 知名学校对应的楼盘获取有问题，ajax动态加载的问题
+	  * @param Folder
+	  */
+	 public static void getschoolDistrictHousing(String Folder){
+
+			String url = SchoolDistrictHousing;
+	        Vector<String> urls = new Vector<String>();
+			
+			Set<String> visited = new TreeSet<String>();
+			urls.add(url);
+			
+			Parser parser = new Parser();
+			boolean quit = false;
+			
+			while (urls.size() > 0)
+			{
+				// 解析页面
+				url = urls.get(0);
+				
+				urls.remove(0);
+				visited.add(url);
+				
+				//String content = HTMLTool.fetchURL(url, "gb2312", "post");
+				String content = Tool.fetchURL(url);
+				if (content == null)
+				{
+					continue;
+				}
+				try {
+					parser.setInputHTML(content);
+					parser.setEncoding("gb2312");
+					System.out.println(content);
+					HasParentFilter parentFilter1 = new HasParentFilter(new AndFilter(new TagNameFilter("div"), new HasParentFilter(new HasAttributeFilter("class", "nlcd_name"))));
+					NodeFilter filter = new AndFilter(new TagNameFilter("a"),parentFilter1); 
+					NodeList nodes = parser.extractAllNodesThatMatch(filter);
+					if(nodes.size()!=0){
+						for(int i=0;i<nodes.size();i++){
+							TagNode no=(TagNode) nodes.elementAt(i);
+							String href=no.getAttribute("href");
+							String title=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+							System.out.println(title+":"+href);
+						}
+					}
+					
+					int ss = content.indexOf("<strong class=\"f14 fb_blue\">");
+					
+					while (ss != -1)
+					{
+
+						int en = content.indexOf("</strong>", ss + "<strong class=\"f14 fb_blue\">".length());
+						if (en != -1)
+						{
+							String sub = content.substring(ss, en);
+							
+							int rfs = sub.indexOf("href=\"");
+							if (rfs != -1)
+							{
+								int rfe = sub.indexOf("\"", rfs + "href=\"".length());
+								if (rfe != -1)
+								{
+									String purl = sub.substring(rfs + "href=\"".length(), rfe);
+									System.out.println(purl);
+									String poi = parseHotRealEstate(purl);
+									
+									if (poi != null)
+									{
+										FileTool.Dump(poi, FOLDER+"hotRealEstate.txt", "UTF-8");
+										System.out.println(poi);
+									}
+								else
+									break;
+							}
+							else
+								break;
+						}
+						else
+							break;
+						
+						ss = content.indexOf("<strong class=\"f14 fb_blue\">", en + "</strong>".length());
+						
+						try {
+							Thread.sleep(500 * ((int) (Math
+								.max(1, Math.random() * 3))));
+						} catch (final InterruptedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+					}
+			
+					}
+	                filter = new AndFilter(new TagNameFilter("div"), new HasParentFilter(new HasAttributeFilter("class", "searchListPage"))); 
+					nodes = parser.extractAllNodesThatMatch(filter);
+					if (nodes != null)
+					{
+
+						for (int nn = 0; nn < nodes.size(); nn ++)
+						{
+							Node ni = nodes.elementAt(nn);
+							NodeList cld = ni.getChildren();
+							if (cld != null)
+							{
+								for (int kkk = 0; kkk < cld.size(); kkk ++)
+								{
+									if (cld.elementAt(kkk) instanceof TagNode)
+									{
+										String href = ((TagNode)cld.elementAt(kkk)).getAttribute("href");
+										if (href != null)
+										{
+											if (!href.startsWith("http://"))
+											{
+												if (href.startsWith("/house"))
+													href = "http://newhouse.cq.fang.com/" + href;
+												else
+													continue;
+											}
+											
+											if (!visited.contains(href))
+											{
+												int kk = 0;
+												for (; kk < urls.size(); kk ++)
+												{
+													if (urls.elementAt(kk).equalsIgnoreCase(href))
+													{
+														break;
+													}
+												}
+												
+												if (kk == urls.size())
+													urls.add(href);
+											}
+										}
+									}
+								}
+							}						
+						}
+					}
+					
+				}catch (ParserException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}			
+			}
+		
+	 }
 	public static String parseHotRealEstate(String link){
 
 		//String content = HTMLTool.fetchURL(link, "gb2312", "get");
@@ -179,17 +326,20 @@ public class XueQuFang {
 								 filter = new AndFilter(new TagNameFilter("tr"),parentFilter3);
 								 nodes = parser.extractAllNodesThatMatch(filter);
 								 int count=nodes.size();
+								 JSONObject record=new JSONObject();
 								 if(nodes.size()!=0){
 									 for(int i=0;i<nodes.size();i++){
 										 TagNode no=(TagNode) nodes.elementAt(i);
 										 String str=no.toPlainTextString().replace("  ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
 										 //System.out.println(str);
 										 if(i>0){
-											 String key="record"+(i+1);
-											 jsonObjArr.put(key,str);
+											 String key="record"+(i);
+											 record.put(key,str);
 										 }		 
 									 }	 
 								 }
+								 jsonObjArr.put("record",record);
+								 
 								 
 								 parser.reset();
 								 //parentFilter1 = new HasParentFilter(new AndFilter(new TagNameFilter("div"),new HasAttributeFilter("class", "lineheight")));
@@ -495,7 +645,7 @@ public class XueQuFang {
 								
 								if (poi != null)
 								{
-									FileTool.Dump(poi, FOLDER+"hotRealEstate.txt", "UTF-8");
+									FileTool.Dump(poi, FOLDER+"hotRealEstate-0609.txt", "UTF-8");
 									System.out.println(poi);
 								}
 							else
