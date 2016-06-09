@@ -20,8 +20,24 @@ import com.svail.util.Tool;
 import net.sf.json.JSONObject;
 
 public class Meituan {
+	public static String[] types={"dongbeicai","dongnanya","haixian","huoguo","jiangzhecai","jucanyanqing","kafeijiuba","kaorou","kuaican","lucaibeijingcai","mengcan","qitameishi",
+			                     "ribenliaoli","shaokaokaochuan","sushi","taiwancai","xiangcai","xiangguokaoyu","xibeicai","xican","xinjiangcai","yuegangcai","yunguicai","zhoutangduncai",
+			                     "zizhucan"
+			                     };
 	public static void main(String[] args) throws IOException {
-		getData("D:/重庆基础数据抓取/基础数据/美团/美团link.txt");
+		
+		String folder="D:/重庆基础数据抓取/基础数据/美团/Meituan（无重复）/Meituan/";
+		String type="";
+		String path="";
+		for(int i=0;i<types.length;i++){
+			type=types[i];
+			path=folder+type+".txt";
+			getData(path,0);
+			
+			String monitor=i+":"+"完成了"+type+".txt"+"的抓取";
+			FileTool.Dump(monitor, folder+"monitor.txt", "utf-8");
+		}
+		
 		//getLink("D:/重庆基础数据抓取/基础数据/","http://cq.meituan.com/category/dangaotiandian?mtt=1.index%2Fdefault%2Fpoi.0.0.imznlqv8");
 
 	}
@@ -108,15 +124,17 @@ public class Meituan {
 		}
 	}
 
-	public static void getData(String folder) {
+	public static void getData(String folder,int k) {
 		Vector<String> pois = FileTool.Load(folder, "UTF-8");
-		for (int i = 0; i < pois.size(); i++) {
-			String url = pois.elementAt(i);
+		
+		for (int i=k; i < pois.size(); i++) {
+			String poi = pois.elementAt(i).replace("},", "}");
+			JSONObject obj=JSONObject.fromObject(poi);
+			String url=obj.getString("href");
 			String result = "";
 			try {
 				String content = Tool.fetchURL(url);
 				Parser parser = new Parser();
-				JSONObject obj=new JSONObject();
 				if (content == null) {
 					FileTool.Dump(url, folder + "-Null.txt", "utf-8");
 				} else {
@@ -216,17 +234,47 @@ public class Meituan {
 					// new HasAttributeFilter("id",
 					// "yui_3_16_0_1_1460604444627_2750")
 					nodes = parser.extractAllNodesThatMatch(filter);
+					JSONObject group_purchase=new JSONObject();
 					if (nodes.size() != 0) {
+						int size=nodes.size();
 						for(int j=0;j<nodes.size();j++){
 							TagNode tn = (TagNode) nodes.elementAt(j);
 							String str = tn.toPlainTextString().replace("  ", "").replace("&gt;", "").replace("&ensp;", "").replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "").replace("&#8211;", "-").replace("&nbsp;", "").replace("&ldquo", "").replace("&#160;", "").replace("", "").trim();
-							String tur = tn.getAttribute("href");
-							result = "<title>" + str + "</title>" + result;
-							obj.put("title", str);
+							//100元代金券1张，可叠加已售2863截止到2016.06.20有效期内周末、法定节假日通用¥88门店价¥100立即抢购
+							String item="package"+j;
+							
+							if(str.indexOf("展开剩下")==-1){
+								parser.reset();
+								HasParentFilter parentFilter11 = new HasParentFilter(new AndFilter(new TagNameFilter("div"),new HasAttributeFilter("id", "anchor-salelist")));
+								HasParentFilter parentFilter22 = new HasParentFilter(new AndFilter(new TagNameFilter("ul"), new AndFilter(parentFilter11,new HasAttributeFilter("class", "onsale-list cf"))));
+								HasParentFilter parentFilter33 = new HasParentFilter(new AndFilter(new TagNameFilter("li"),parentFilter22));
+								NodeFilter filter1 = new AndFilter(new TagNameFilter("a"), new AndFilter(parentFilter33,new HasAttributeFilter("class", "item__title")));
+								NodeList nodes1 = parser.extractAllNodesThatMatch(filter1);
+								if(nodes1.size()!=0){
+									TagNode tn1 = (TagNode) nodes1.elementAt(j);
+									if(tn1!=null){
+										String tur = tn1.getAttribute("href");
+										str=str+","+tur;
+										group_purchase.put(item, str);
+									}
+								 }
+							}
+						
 						}
 						
 					}
-
+					obj.put("group_purchase", group_purchase);		
+					
+					System.out.println(i);
+					FileTool.Dump(obj.toString(), folder.replace(".txt", "") + "-result.txt", "utf-8");
+					
+					try {
+						Thread.sleep(500 * ((int) (Math
+							.max(1, Math.random() * 3))));
+					} catch (final InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 					
 				}
 			} catch (ParserException e) {
