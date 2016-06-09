@@ -11,6 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Vector;
 import java.util.zip.GZIPInputStream;
 
@@ -21,20 +22,62 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.svail.geotext.GeoQuery;
 import com.svail.util.FileTool;
+import com.svail.util.LongUrlToShort;
 import com.svail.util.ReadJson;
+import com.svail.util.Tool;
+
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 public class GetJsonText {
 	
-	public static void main(String[] args) {
-		jsonAddressMatch("D:/重庆基础数据抓取/基础数据/重庆电网/营业厅.txt");
+	public static void main(String[] args) throws UnsupportedEncodingException {
+		/*生态文明处理流程
+		//step-1：将所有子文件合成一个总文件
+		//mergeFile("D:/baidu/chengguo/","chengguo");
+		// D:/baidu/lingdaoxiaozu/
+		// D:/baidu/tizhigaige/
+		//D:/baidu/fangan/
+		//D:/baidu/chengguo/
+		
+		//step-2:将合成的总文件进行去冗余处理
+		//Tool.delectRedundancy("D:/baidu/lingdaoxiaozu/lingdaoxiaozu-Result-delectRedundancy.txt");
+		
+		//step-3:将数据进行地理编码处理
+		//jsonAddressMatch("D:/baidu/chengguo/chengguo-Result-delectRedundancy_NullException.txt");
+		
+		//step-4：将地理编码处理后的数据转换成json格式
+		//exportJson("D:/baidu/lingdaoxiaozu/lingdaoxiaozu-Total.txt");
+		 * 
+		 */
+		
+		//重庆基础数据处理
+		String folder="E:/chongqing/跳蚤市场.txt";
+		jsonAddressMatch(folder);
+		//findGroup_purchaseNull(folder);
+		
 	}
-	public static void jsonAddressMatch(String file){
+	public static void findGroup_purchaseNull(String file){
+		Vector<String> pois = FileTool.Load(file, "utf-8");
+		for (int k = 0; k < pois.size(); k++) {
+			String poi1=pois.elementAt(k);
+			JSONObject jsonObject =JSONObject.fromObject(poi1);
+			
+			//"group_purchase":{}
+			String group_purchase=jsonObject.getString("group_purchase");
+			if(group_purchase.equals("{}")){
+				FileTool.Dump(poi1, file.replace(".txt", "")+"_Group_purchaseNull.txt", "utf-8");
+			}else{
+				FileTool.Dump(poi1, file.replace(".txt", "")+"_OK.txt", "utf-8");
+			}
+		}
+	}
+
+	public static void jsonAddressMatch(String file) throws UnsupportedEncodingException{
 
 		// TODO Auto-generated method stub
 		String request ="http://192.168.6.9:8080/p41?f=json";
-		String parameters = "&key=206DA5B15B5211E5BFE0B8CA3AF38727&queryStr=";
+		String parameters = "&within="+ java.net.URLEncoder.encode("重庆市", "UTF-8")+"&key=206DA5B15B5211E5BFE0B8CA3AF38727&queryStr=";
 
 		boolean batch = true;
 		Gson gson = new Gson();
@@ -47,15 +90,63 @@ public class GetJsonText {
 		Vector<String> validpois = new Vector<String>();
 		
 		Vector<String> pois = FileTool.Load(file, "utf-8");
+		
+		String txtc ="";
+		
+		// FileTool.Dump(txtc, file.replace(".txt", "") + "_result.json", "UTF-8");
+		
+		int cnt = 0;
 		for (int k = 0; k < pois.size(); k++) {
 			if (batch) {
 				String poi1=pois.elementAt(k);
+				if(poi1.endsWith("},")){
+					poi1=poi1.replace("},", "}");
+				}
+
 				JSONObject jsonObject =JSONObject.fromObject(poi1);
-				String address=(String) jsonObject.get("addr");
+/*
+				String sub=jsonObject.toString().replace("[", "").replace("]", "");
+				int bb=sub.indexOf("Title\":\"")+"\"Title\":\"".length();
+				int ee=sub.indexOf("\",\"abstract\"");
+				String temp=sub.substring(bb,ee);
+*/
+
+
+				String address="";
+				String community="";
+				String location="";
+				
+				
+				if(jsonObject.containsKey("community")){
+					if(jsonObject.getString("community")!=null){
+						community=jsonObject.getString("community");
+					}
+				}
+				
+				if(jsonObject.containsKey("sales_address")){
+					if(jsonObject.getString("sales_address")!=null){
+						address=jsonObject.getString("sales_address");
+					}
+				}
+				if(jsonObject.containsKey("location")){
+					if(jsonObject.getString("location")!=null){
+						location=jsonObject.getString("location");
+					}
+				}else{
+					System.out.println("无location字段");
+				}
+				
+				if(location.length()==0){
+					location="暂无地址";
+				}
+			    String addr=location+address+community;
+			    //String index11=k+":"+addr;
+			   // System.out.println(k+":"+addr);
+			    
 				validpois.add(poi1);
 				count ++;
-				sb.append(address).append("\n");
-				if (((count == 100) ||  k == pois.size() - 1)) {
+				sb.append(addr).append("\n");
+				if (((count == 10000) ||  k == pois.size() - 1)) {
 
 					String urlParameters = sb.toString();
 					System.out.print("批量处理开始：");
@@ -139,24 +230,34 @@ public class GetJsonText {
 											if (gq != null && gq.getResult() != null && gq.getResult().size() > 0)
 											{
 												System.out.println("这批数据没有问题！");
+												
 												for (int m = 0; m < gq.getResult().size(); m ++)
 												{
 													if (gq.getResult().get(m) != null && gq.getResult().get(m).getLocation() != null)
 													{
 														if(gq.getResult().get(m).getLocation().getRegion()!=null)
-														Admin=gq.getResult().get(m).getLocation().getRegion().getProvince()+","+gq.getResult().get(m).getLocation().getRegion().getCity()+","+gq.getResult().get(m).getLocation().getRegion().getCounty()+","+gq.getResult().get(m).getLocation().getRegion().getTown();
+														Admin=(gq.getResult().get(m).getLocation().getRegion().getProvince()+","+gq.getResult().get(m).getLocation().getRegion().getCity()+","+gq.getResult().get(m).getLocation().getRegion().getCounty()+","+gq.getResult().get(m).getLocation().getRegion().getTown());
 														else
 															Admin="暂无";
-														lnglat = gq.getResult().get(m).getLocation().getLng() + ";" + gq.getResult().get(m).getLocation().getLat();
-														
+														lnglat =gq.getResult().get(m).getLocation().getLng() + "," + gq.getResult().get(m).getLocation().getLat();
+														double[] lng=new double[2];
+														lng[0]=gq.getResult().get(m).getLocation().getLng();
+														lng[1]=gq.getResult().get(m).getLocation().getLat();
 														String poitemp=validpois.elementAt(m);
-														JSONObject jsonObjectTemp =JSONObject.fromObject(poitemp);
-														jsonObjectTemp.put("coordinate",lnglat);
-														jsonObjectTemp.put("region",Admin);
-
-														FileTool.Dump(jsonObjectTemp.toString(), file.replace(".txt", "") + "_result.txt", "UTF-8");
-														//System.out.println(poi);
 														
+														
+														JSONObject jsonObjectTemp =JSONObject.fromObject(poitemp);
+														String coordinate=lnglat;
+														String region=Admin;
+														jsonObjectTemp.put("coordinate", coordinate);
+														jsonObjectTemp.put("region", region);
+														
+														//String index22=k+":"+region;
+														//System.out.println(k+":"+region);
+														//FileTool.Dump(index11+","+index22, file.replace(".txt", "") + "_monitor.txt", "UTF-8");
+														
+														FileTool.Dump(jsonObjectTemp.toString(), file.replace(".txt", "") + "_result.txt", "UTF-8");
+		
 													}
 													else
 													{
@@ -205,12 +306,97 @@ public class GetJsonText {
 			}
 			
 		}
+
 		
+		// txtc = "]};";
+				
+		// FileTool.Dump(txtc, file.replace(".txt", "") + "_result.json", "UTF-8");
+		//jsonObjectTemp.toString()
+		//System.out.println(poi);
 		
 		//System.out.println(JsonContext);
 	
 	}
+	public static void mergeFile(String path,String type){
+		String[] names={};
+		String folder="";
+		for(int k=0;k<names.length;k++){
+			String county=names[k];
+			folder=path+county+".json";
+			Vector<String> file=FileTool.Load(folder, "utf-8");
+			if(file!=null){
+				for(int i=0;i<file.size();i++){
+					System.out.println(file.elementAt(i));
+					FileTool.Dump(file.elementAt(i), path+type+"-Result.txt", "utf-8");
+				}	
+			}										
+		}
+		
+	}
 	
+	public static void exportJson(String file) {
+		
+		Vector<String> rds = FileTool.Load(file, "UTF-8");
+		
+		JSONObject root = new JSONObject();
+		
+		root.put("type", "FeatureCollection");
+		
+		ArrayList<JSONObject> features = new ArrayList<JSONObject>();
+		
+		for (int n = 0; n < rds.size(); n ++) {
+			
+			/*txtc = "{ \"type\":\"Feature\", \"geometry\": {\"type\":\"Point\", \"coordinates\":[" + lng[0] + "," + lng[1] + "]},\"properties\": {\"Title\":\""+ title+"\""
+				+  ",\"href\":\"" +shorturl+ "\",\"time\":\"" + jsonObjectTemp.getString("time").replace("-", "").replace(" ", "")
+				+ "\",\"abstract\":\"" + abs+ "\",\"region\":\"" + Admin + "\"}}";
+			*/
+			/*txtc = "<TTTLE>" + title + "</TITLE>" + "<URL>" + shorturl + "</URL>" + "<ABS>" + abs + "</ABS>" + "<TIME>" + time + "</TIME>" +
+				"<LNG>" + lng[0] + "</LNG>" + "<LAT>" + lng[1] + "</LAT>" + "<REGION>" + Admin + "</REGION>";*/
+			
+			JSONObject obj = new JSONObject();
+			obj.put("type", "Feature");
+			
+			String ref = rds.get(n);
+			
+			String title=Tool.getStrByKey(ref, "<TTTLE>", "</TITLE>", "</TITLE>").replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+			
+			JSONObject prop = new JSONObject();
+			prop.put("title", title.replace("\"", "\\\""));
+			
+			String URL=Tool.getStrByKey(ref, "<URL>", "</URL>", "</URL>").replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+			prop.put("href", URL);
+			
+			String ABS=Tool.getStrByKey(ref, "<ABS>", "</ABS>", "</ABS>").replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+			prop.put("abs", ABS.replace("\"", "\\\""));
+
+			String TIME=Tool.getStrByKey(ref, "<TIME>", "</TIME>", "</TIME>").replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+			prop.put("time", TIME);
+			
+			String REGION=Tool.getStrByKey(ref, "<REGION>", "</REGION>", "</REGION>").replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");
+			prop.put("region", REGION);
+		
+			obj.put("properties", prop);
+			
+			JSONObject geom = new JSONObject();
+			double coord[] = {Double.parseDouble(Tool.getStrByKey(ref, "<LNG>", "</LNG>", "</LNG>")),
+					Double.parseDouble(Tool.getStrByKey(ref, "<LAT>", "</LAT>", "</LAT>"))};
+			
+			// "geometry\": {\"type\":\"Point\", \"coordinates\":[" + lng[0] + "," + lng[1] + "]}
+			geom.put("type", "Point");
+			
+			geom.put("coordinates", coord);
+			
+			obj.put("geometry", geom);
+			System.out.println(n);
+			features.add(obj);
+			
+		}
+		root.put("features", features);
+		//System.out.println();
+		
+		FileTool.Dump(root.toString(), file.replace(".txt", "")+"-json.json", "UTF-8");//file.replace(".txt", "")+"-json.json"
+		
+	}
 		
 
 
