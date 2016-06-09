@@ -36,18 +36,18 @@ import com.svail.util.Tool;
 import net.sf.json.JSONObject;
 
 public class TiaoZao {
-	public static String FOLDER="D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao";
+	public static String FOLDER="D:/重庆基础数据抓取/基础数据/跳蚤/";
 	public static void main(String[] args){
-		/*
+		
 		for(int i=1;i<=500;i++){
 			String link="http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page="+i;
 			getLink(link,FOLDER);
 			System.out.println("完成第"+i+"页数据获取");
 			FileTool.Dump("完成第"+i+"页数据获取", FOLDER+"crawlMonitor.txt", "utf-8");
 		}
-		*/
 		
-		fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
+		
+		//fetchData("D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao-Content.txt");
 		//getLink("http://go.cqmmgo.com/bb/list?fid=462480&tradeStatus=0&page=1", "D:/重庆基础数据抓取/基础数据/跳蚤/TiaoZao");
 	}
 	public static BasicDBObject transfer(JSONObject jsonObject) throws Exception {  
@@ -82,8 +82,8 @@ public class TiaoZao {
 						JSONObject jsonObject =JSONObject.fromObject(poi);
 						if(jsonObject!=null){
 							BasicDBObject document = new BasicDBObject();
-							Object title=jsonObject.get("title");
-							document.put("title", title);
+							Object link=jsonObject.get("link");
+							document.put("link", link);
 							DBCursor rls =coll.find(document);
 							if (rls == null || rls.size() == 0)
 	    					{
@@ -241,7 +241,7 @@ public class TiaoZao {
 						obj.put("crawl_time", sdf.format(d));
 						
 						//System.out.println(obj);
-						FileTool.Dump(obj.toString(), folder+"-Content.txt", "utf-8");
+						FileTool.Dump(obj.toString(), folder+"TiaoZao_Content.txt", "utf-8");
 					}
 					try {
 						Thread.sleep(500 * ((int) (Math
