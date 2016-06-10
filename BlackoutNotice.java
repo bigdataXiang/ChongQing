@@ -18,18 +18,93 @@ import net.sf.json.JSONArray;
 public class BlackoutNotice {
 	
 	public static void main(String[] args) throws ParserException {
-		//String content=sendPost(url,params);
-		//System.out.println(content);
-		paserJson(folder+"停电通知.txt");
+		String content=sendPost(url,params);
+		System.out.println(content);
 	}
 	
 	final static String url = "http://www.95598.cn/95598/outageNotice/queryOutageNoticeList?";  
-	final static String params = "orgNo=50404&outageStartTime=2016-06-10&outageEndTime=2016-06-17&scope=&provinceNo=50101&typeCode=&lineName=&pageNow=5&pageCount=10&totalCount=42";
+	final static String params = "orgNo=50404&outageStartTime=2016-06-10&outageEndTime=2016-06-17&scope=&provinceNo=50101&typeCode=&lineName=&pageNow=1&pageCount=10&totalCount=42";
     public static String json="";
     public static String folder="D:/重庆基础数据抓取/基础数据/停电通知/";
-    public static void paserJson(String folder){
-    	Vector<String> jsons=FileTool.Load(folder, "utf-8");
-    	String json=jsons.elementAt(0);
+    
+    public static void run(){
+    	int mode=0;
+    	String initial_content="";
+    	String content="";
+    	
+    	String url = "http://www.95598.cn/95598/outageNotice/queryOutageNoticeList?"; 
+    	String orgNo="50404";
+    	String outageStartTime="2016-06-10";
+    	String outageEndTime="2016-06-17";
+    	String temp = "orgNo="+orgNo+"&outageStartTime="+outageStartTime+"&outageEndTime="+outageEndTime+"&scope=&provinceNo=50101&typeCode=&lineName=";
+    	
+    	int totalCount=42;
+		int totalPage;
+		int pageNow=1;
+    	String page="&pageNow="+pageNow+"&pageCount=10&totalCount="+totalCount;
+    	
+    	if(mode==0){
+    		initial_content=sendPost(url,params);
+    		paserJson(initial_content,false);
+    		mode++;
+    	}else{
+    		
+    		
+    		if(mode==1){
+    			String[] page_result=getpageModel(initial_content);
+        		totalCount=Integer.parseInt(page_result[2]);
+        		totalPage=Integer.parseInt(page_result[3]);
+        		pageNow=Integer.parseInt(page_result[4]);
+        		
+        		if(totalPage>1){
+        			pageNow++;
+        		}
+    		}else{
+    			
+    		}
+    		
+    	}
+    	
+    }
+    /**
+     * 获取每条json数据的页面信息
+     * @param json
+     * @return
+     */
+    public static String[] getpageModel(String json){
+    	String[] result = new String[5];
+    	
+    	JSONObject obj=JSONObject.fromObject(json);
+    	String pageModel=obj.getString("pageModel");
+    	JSONObject pageModel_obj=JSONObject.fromObject(pageModel);
+    	
+    	String beginCount=pageModel_obj.getString("beginCount");
+    	result[0]=beginCount;
+    	String pageCount=pageModel_obj.getString("pageCount");
+    	result[1]=pageCount;
+    	String totalCount=pageModel_obj.getString("totalCount");
+    	result[2]=totalCount;
+    	String totalPage=pageModel_obj.getString("totalPage");
+    	result[3]=totalPage;
+    	String pageNow=pageModel_obj.getString("pageNow");
+    	result[4]=pageNow;
+    	
+    	return result;
+    }
+    /**
+     * 获取json数据中的每条停电通知
+     * @param folder
+     */
+    public static void paserJson(String folder,boolean file){
+    	
+    	String json="";
+    	if(file){
+    		Vector<String> jsons=FileTool.Load(folder, "utf-8");
+        	json=jsons.elementAt(0);
+    	}else{
+    		json=folder;
+    	}
+    	
     	
     	JSONObject obj=JSONObject.fromObject(json);
     	
@@ -42,53 +117,10 @@ public class BlackoutNotice {
     			    JSONObject seleList_obj = seleList_arr.getJSONObject(i);  // 遍历 jsonarray 数组，把每一个对象转成 json 对象
     			    System.out.println(seleList_obj.toString()) ;  // 得到 每个对象中的属性值
     			    
-    			    String typeName = seleList_obj.getString("typeName");
-    			    String typeCode = seleList_obj.getString("typeCode");
-    			    String startTime = seleList_obj.getString("startTime");
-    			    String scope = seleList_obj.getString("scope");
-    			    String orgNo = seleList_obj.getString("orgNo");
-    			    String orgName = seleList_obj.getString("orgName");
-    			    String cityName = seleList_obj.getString("cityName");
-    			    String lineName = seleList_obj.getString("lineName");
-    			    String cityCode = seleList_obj.getString("cityCode");
-    			    String countyName = seleList_obj.getString("countyName");
-    			    String tgName = seleList_obj.getString("tgName");
-    			    String tranName = seleList_obj.getString("tranName");
-    			    String sdLineName = seleList_obj.getString("sdLineName");
-    			    String sgpoweroffId = seleList_obj.getString("sgpoweroffId");
-    			    String streetName = seleList_obj.getString("streetName");
-    			    String villageName = seleList_obj.getString("villageName");
-    			    String roadName = seleList_obj.getString("roadName");
-    			    String communityName = seleList_obj.getString("communityName");
-    			    String nowTime = seleList_obj.getString("nowTime");
-    			    String poweroffId = seleList_obj.getString("poweroffId");
-    			    String subsName = seleList_obj.getString("subsName");
-    			    String pubTranName = seleList_obj.getString("pubTranName");
-    			    String stopDate = seleList_obj.getString("stopDate");
-    			    String poweroffArea = seleList_obj.getString("poweroffArea");
-    			    String poweroffReason = seleList_obj.getString("poweroffReason");
-    			    String powerTime = seleList_obj.getString("powerTime");
-    			    String powerComm = seleList_obj.getString("powerComm");
-    			    String subsNo = seleList_obj.getString("subsNo");
-    			    String lineNo = seleList_obj.getString("lineNo");
-    			    String tgNo = seleList_obj.getString("tgNo");
-    			    String infoStatus = seleList_obj.getString("infoStatus");
-    			    String infoStatusName = seleList_obj.getString("infoStatusName");
-    			    String dateDay = seleList_obj.getString("dateDay");
-    			    String orgNos = seleList_obj.getString("orgNos");
-    			    String provinceCode = seleList_obj.getString("provinceCode");
-    			  }
+    		}
     	}
     	
-    	String pageModel=obj.getString("pageModel");
-    	JSONObject pageModel_obj=JSONObject.fromObject(pageModel);
-    	String beginCount=pageModel_obj.getString("beginCount");
-    	String pageCount=pageModel_obj.getString("pageCount");
-    	String totalCount=pageModel_obj.getString("totalCount");
-    	String totalPage=pageModel_obj.getString("totalPage");
-    	String pageNow=pageModel_obj.getString("pageNow");
-    	
-    	System.out.println(today);
+    	//System.out.println(today);
     }
     /**
 	 * 向指定 URL 发送POST方法的请求
