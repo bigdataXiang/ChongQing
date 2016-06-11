@@ -16,10 +16,21 @@ import net.sf.json.JSONObject;
 import net.sf.json.JSONArray;
 
 public class BlackoutNotice {
+
+
+	public static JSONArray CODE = new JSONArray();
+	
 	
 	public static void main(String[] args) throws ParserException {
-		String content=sendPost(url,params);
-		System.out.println(content);
+		
+		String[] codes=get_orgNoCode(folder+"code_jsonarray.txt");
+		
+		for(int i=0;i<codes.length;i++){
+			
+			run(codes[i],"2016-06-11","2016-06-18");
+		}
+		
+		//
 	}
 	
 	final static String url = "http://www.95598.cn/95598/outageNotice/queryOutageNoticeList?";  
@@ -27,41 +38,73 @@ public class BlackoutNotice {
     public static String json="";
     public static String folder="D:/重庆基础数据抓取/基础数据/停电通知/";
     
-    public static void run(){
+    public static String[] get_orgNoCode(String folder){
+    	Vector<String> poi=FileTool.Load(folder, "utf-8");
+    	String line = poi.elementAt(0);
+    	JSONArray orgNos = JSONArray.fromObject(line);
+    	
+    	String[] codes = new String[orgNos.size()];
+    	
+    	if(orgNos.size()!=0){
+    		for(int i=0; i<orgNos.size();i++){
+    			JSONObject orgNo = orgNos.getJSONObject(i);
+    			//System.out.println(orgNo);
+    			
+    			String code=orgNo.getString("code");
+    			codes[i]=code;
+    			//String codeType=orgNo.getString("codeType");
+    			//String value=orgNo.getString("value");
+    			//System.out.println(code);
+    		}
+    	}
+    	
+    	return codes;
+    }
+    
+    public static void run(String orgNo,String outageStartTime,String outageEndTime){
+    	
+    	System.out.println("开始"+orgNo+"的抓取:");
+    	
     	int mode=0;
-    	String initial_content="";
     	String content="";
     	
     	String url = "http://www.95598.cn/95598/outageNotice/queryOutageNoticeList?"; 
-    	String orgNo="50404";
-    	String outageStartTime="2016-06-10";
-    	String outageEndTime="2016-06-17";
     	String temp = "orgNo="+orgNo+"&outageStartTime="+outageStartTime+"&outageEndTime="+outageEndTime+"&scope=&provinceNo=50101&typeCode=&lineName=";
     	
-    	int totalCount=42;
-		int totalPage;
-		int pageNow=1;
-    	String page="&pageNow="+pageNow+"&pageCount=10&totalCount="+totalCount;
+    	int totalCount=0;
+		int totalPage=0;
+		int pageNow=0;
+		
+    	String page="";
+    	String params="";
+    	
+    	
     	
     	if(mode==0){
-    		initial_content=sendPost(url,params);
-    		paserJson(initial_content,false);
+    		content=sendPost(url,temp);
+    		paserJson(content,false,folder);
+    		System.out.println("第1页获得！");
     		mode++;
-    	}else{
-    		
-    		
-    		if(mode==1){
-    			String[] page_result=getpageModel(initial_content);
-        		totalCount=Integer.parseInt(page_result[2]);
-        		totalPage=Integer.parseInt(page_result[3]);
-        		pageNow=Integer.parseInt(page_result[4]);
+    	}
+    	
+        if(mode>0){
+        	
+    		String[] page_result=getpageModel(content);
+        	totalCount=Integer.parseInt(page_result[2]);
+        	totalPage=Integer.parseInt(page_result[3]);
+        	pageNow=Integer.parseInt(page_result[4]);
+        	
+        	if(totalPage>1){
         		
-        		if(totalPage>1){
-        			pageNow++;
-        		}
-    		}else{
-    			
-    		}
+               for(pageNow=2;pageNow<=totalPage;pageNow++){
+        			page="&pageNow="+pageNow+"&pageCount=10&totalCount="+totalCount;
+                	params=temp+page;
+                	content=sendPost(url,params);
+                	paserJson(content,false,folder); 
+                	System.out.println("第"+pageNow+"页获得！");
+            	}
+        		      			
+        	}
     		
     	}
     	
@@ -95,7 +138,7 @@ public class BlackoutNotice {
      * 获取json数据中的每条停电通知
      * @param folder
      */
-    public static void paserJson(String folder,boolean file){
+    public static void paserJson(String folder,boolean file,String dumpfolder){
     	
     	String json="";
     	if(file){
@@ -115,7 +158,8 @@ public class BlackoutNotice {
     	if(seleList_arr.size()>0){
     		  for(int i=0;i<seleList_arr.size();i++){
     			    JSONObject seleList_obj = seleList_arr.getJSONObject(i);  // 遍历 jsonarray 数组，把每一个对象转成 json 对象
-    			    System.out.println(seleList_obj.toString()) ;  // 得到 每个对象中的属性值
+    			   // System.out.println(seleList_obj.toString()) ;  // 得到 每个对象中的属性值
+    			    FileTool.Dump(seleList_obj.toString(), dumpfolder+"停电通知.txt", "utf-8");
     			    
     		}
     	}
