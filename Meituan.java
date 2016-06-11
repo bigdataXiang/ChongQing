@@ -34,25 +34,35 @@ import com.svail.util.Tool;
 import net.sf.json.JSONObject;
 
 public class Meituan {
-	public static String[] types={"test","chuancai","chuangyicai","dangaotiandian","dongbeicai","dongnanya","haixian","huoguo","jiangzhecai","jucanyanqing","kafeijiuba","kaorou","kuaican","lucaibeijingcai","mengcan","qitameishi",
-			                     "ribenliaoli","shaokaokaochuan","sushi","taiwancai","xiangcai","xiangguokaoyu","xibeicai","xican","xinjiangcai","yuegangcai","yunguicai","zhoutangduncai",
-			                     "zizhucan"
+	public static String[] types={"chuancai","chuangyicai","dangaotiandian","dongbeicai","dongnanya","haixian","huoguo","jiangzhecai","jucanyanqing","kafeijiuba","kaorou","kuaican","lucaibeijingcai","mengcan",
+			                      "qitameishi","ribenliaoli","shaokaokaochuan","sushi","taiwancai","xiangcai","xiangguokaoyu","xibeicai","xican","xinjiangcai","yuegangcai","yunguicai","zhoutangduncai","zizhucan"
 			                     };
+	public static String[] types_name={"川菜","创意菜","甜点饮品","东北菜","东南亚菜","海鲜","火锅","江浙菜","聚餐宴请 ","咖啡酒吧茶馆","烧烤烤肉","小吃快餐","京菜鲁菜","蒙餐",
+			                           "其他美食","日韩料理","中式烧烤/烤串","素食","台湾/客家菜","湘菜","香锅烤鱼","西北菜","西餐","新疆菜 ","粤港菜","云贵菜","汤/粥/炖菜","自助餐"
+			 };
 	public static void main(String[] args) throws IOException {
 		
 		run();
+		//check();
 		
+	}
+	public static void check(){
+		for(int i=0;i<types.length;i++){
+			System.out.println(types[i]+":"+types_name[i]);
+		}
 	}
 	public static void run() throws UnsupportedEncodingException{
 		String folder="D:/重庆基础数据抓取/基础数据/美团/Meituan（无重复）/Meituan/";
 		String type="";
 		String path="";
-		for(int i=0;i<1;i++){//types.length
+		String type_name="";
+		for(int i=1;i<types.length;i++){//types.length
 			type=types[i];
+			type_name=types_name[i];
 			path=folder+type+".txt";
 			
 			System.out.println(i+":"+"开始"+type+".txt"+"的抓取");
-			importMongoDB(path,0);
+			importMongoDB(path,0,type_name);
 			
 			String monitor=i+":"+"完成了"+type+".txt"+"的抓取";
 			FileTool.Dump(monitor, folder+"monitor.txt", "utf-8");
@@ -64,12 +74,15 @@ public class Meituan {
 	 * @param k 从文件中的第k条数据进行处理，一般情况下k为0
 	 * @throws UnsupportedEncodingException
 	 */
-	public static void importMongoDB(String folder,int k) throws UnsupportedEncodingException{
+	public static void importMongoDB(String folder,int k,String restaurant_type) throws UnsupportedEncodingException{
 
 		try {
 			Mongo mongo = new Mongo("192.168.6.9", 27017);
 			DB db = mongo.getDB("chongqing");  // 数据库名称
+			
+			
 			DBCollection coll = db.getCollection("MeiTuan");
+			//coll.drop();//清空表
 
 			List<DBObject> dbList = new ArrayList<DBObject>();  
 			Vector<String> ls = FileTool.Load(folder, "utf-8");
@@ -87,15 +100,15 @@ public class Meituan {
 						if(jsonObject!=null){
 							BasicDBObject document = new BasicDBObject();
 							Object title=jsonObject.get("title");
-							document.put("title", title);
+							document.put("title",title);
 							DBCursor rls =coll.find(document);
-							while (rls.hasNext()) {
-								    System.out.println(rls.next());
-							}
+							//while (rls.hasNext()) {
+							//	    System.out.println(rls.next());
+							//}
 							
 							if (rls == null || rls.size() == 0){
 								 try {
-									 BasicDBObject obj = crawlRestaurant(n,ls,folder);
+									 BasicDBObject obj = crawlRestaurant(n,ls,folder,restaurant_type);
 									 coll.insert(obj);
 								 }catch (java.lang.NullPointerException e1) {
 			    						// TODO Auto-generated catch block
@@ -138,7 +151,7 @@ public class Meituan {
 	 * @return  将被导入mongodb中的document
 	 * @throws UnsupportedEncodingException 
 	 */
-	public static BasicDBObject crawlRestaurant(int i,Vector<String> pois,String folder) throws UnsupportedEncodingException{
+	public static BasicDBObject crawlRestaurant(int i,Vector<String> pois,String folder,String restaurant_type) throws UnsupportedEncodingException{
 
 		//实现数据的实时抓取和导入
 		BasicDBObject document = new BasicDBObject();
@@ -148,6 +161,8 @@ public class Meituan {
         	poi =poi.replace("},", "}"); 
 		}
 		JSONObject obj=JSONObject.fromObject(poi);
+		obj.put("restaurant_type",restaurant_type);
+		document.put("restaurant_type",restaurant_type);
 		
 		String url=obj.getString("href");
 		document.put("href", url);
@@ -248,6 +263,7 @@ public class Meituan {
 				obj.put("group_purchase", group_purchase);
 				document.put("group_purchase", group_purchase);
 				
+				parser.reset();				
 				filter = new AndFilter(new TagNameFilter("p"),new HasAttributeFilter("class", "under-title"));
 				nodes = parser.extractAllNodesThatMatch(filter);
 				if (nodes.size() != 0) {
@@ -261,18 +277,7 @@ public class Meituan {
 							obj.put("address", str);
 							document.put("address", str);
 							
-							//进行实时的地理编码
-							if(str.indexOf("（")!=-1&&str.indexOf("）")!=-1){
-								str=Tool.delect_content_inBrackets(str,"（","）");//将地址后面的括号以及里面的内容去掉
-							}else if(str.indexOf("(")!=-1&&str.indexOf(")")!=-1){
-								str=Tool.delect_content_inBrackets(str,"(",")");//将地址后面的括号以及里面的内容去掉
-							}
 							
-							JSONObject geo=GeoCode.AddressMatch(i,str, folder,poi);
-							obj.put("coordinate", geo.get("coordinate"));
-							document.put("coordinate", geo.get("coordinate"));
-							obj.put("region", geo.get("region"));
-							document.put("region", geo.get("region"));
 						} else {
 							obj.put("telephone", str);
 							document.put("telephone", str);
@@ -285,9 +290,25 @@ public class Meituan {
 				obj.put("crawl_time", sdf.format(d));
 				document.put("crawl_time", sdf.format(d));
 				
-				//判断是否所有的字段都包含，不包含的字段要添加上去
+				//进行实时的地理编码
+				if(obj.containsKey("address")){
+					
+					String str=obj.getString("address");
+					if(str.indexOf("（")!=-1&&str.indexOf("）")!=-1){
+						str=Tool.delect_content_inBrackets(str,"（","）");//将地址后面的括号以及里面的内容去掉
+					}else if(str.indexOf("(")!=-1&&str.indexOf(")")!=-1){
+						str=Tool.delect_content_inBrackets(str,"(",")");//将地址后面的括号以及里面的内容去掉
+					}
+					
+					JSONObject geo=GeoCode.AddressMatch(i,folder,obj);
+					obj.put("coordinate", geo.get("coordinate"));
+					document.put("coordinate", geo.get("coordinate"));
+					obj.put("region", geo.get("region"));
+					document.put("region", geo.get("region"));
+				}
 				
 				
+				//判断是否所有的字段都包含，不包含的字段要添加上去	
 				checkMissed(obj,document);
 				//System.out.println(i);
 				FileTool.Dump(obj.toString(), folder.replace(".txt", "") + "-result.txt", "utf-8");
