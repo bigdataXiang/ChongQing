@@ -34,7 +34,7 @@ import com.svail.util.Tool;
 import net.sf.json.JSONObject;
 
 public class Meituan {
-	public static String[] types={"chuancai","chuangyicai","dangaotiandian","dongbeicai","dongnanya","haixian","huoguo","jiangzhecai","jucanyanqing","kafeijiuba","kaorou","kuaican","lucaibeijingcai","mengcan","qitameishi",
+	public static String[] types={"test","chuancai","chuangyicai","dangaotiandian","dongbeicai","dongnanya","haixian","huoguo","jiangzhecai","jucanyanqing","kafeijiuba","kaorou","kuaican","lucaibeijingcai","mengcan","qitameishi",
 			                     "ribenliaoli","shaokaokaochuan","sushi","taiwancai","xiangcai","xiangguokaoyu","xibeicai","xican","xinjiangcai","yuegangcai","yunguicai","zhoutangduncai",
 			                     "zizhucan"
 			                     };
@@ -47,7 +47,7 @@ public class Meituan {
 		String folder="D:/重庆基础数据抓取/基础数据/美团/Meituan（无重复）/Meituan/";
 		String type="";
 		String path="";
-		for(int i=0;i<types.length;i++){
+		for(int i=0;i<1;i++){//types.length
 			type=types[i];
 			path=folder+type+".txt";
 			
@@ -78,33 +78,46 @@ public class Meituan {
 				for (int n = k; n < ls.size(); n ++)
 				{
 					try {
+						String poi=ls.elementAt(n);
+						if(poi.endsWith("},")){
+					        	poi =poi.replace("},", "}"); 
+						}
+						JSONObject jsonObject =JSONObject.fromObject(poi);
 						
-						 BasicDBObject obj = crawlRestaurant(n,ls,folder);
-						 DBCursor rls =coll.find(obj);
-						 
-						 if (rls == null || rls.size() == 0){
-							 try {
-								 dbList.add(obj);
-							 }catch (java.lang.NullPointerException e1) {
-		    						// TODO Auto-generated catch block
-		    						e1.printStackTrace();
-		    						//FileTool.Dump(photo.toString(), poiError, "utf-8");
-		    					} catch (Exception e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-						 }else{
-							 System.out.println("该数据已经存在！");
-						 }
-						 
+						if(jsonObject!=null){
+							BasicDBObject document = new BasicDBObject();
+							Object title=jsonObject.get("title");
+							document.put("title", title);
+							DBCursor rls =coll.find(document);
+							while (rls.hasNext()) {
+								    System.out.println(rls.next());
+							}
+							
+							if (rls == null || rls.size() == 0){
+								 try {
+									 BasicDBObject obj = crawlRestaurant(n,ls,folder);
+									 coll.insert(obj);
+								 }catch (java.lang.NullPointerException e1) {
+			    						// TODO Auto-generated catch block
+			    						e1.printStackTrace();
+			    						//FileTool.Dump(photo.toString(), poiError, "utf-8");
+			    					} catch (Exception e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+							 }else{
+								 System.out.println("该数据已经存在！");
+							 }
+							 
+						}												 
 						
 					}catch (JsonSyntaxException e) {
 			    		// TODO Auto-generated catch block
 			    		e.printStackTrace();
 			    	}
 				}
-				coll.insert(dbList) ;
-				System.out.println("数据导入完毕！");
+				//coll.insert(dbList) ;
+				//System.out.println("数据导入完毕！");
 				
 			}
 			
@@ -135,7 +148,11 @@ public class Meituan {
         	poi =poi.replace("},", "}"); 
 		}
 		JSONObject obj=JSONObject.fromObject(poi);
+		
 		String url=obj.getString("href");
+		document.put("href", url);
+		String title=obj.getString("title");
+		document.put("title", title);
 
 		try {
 			String content = Tool.fetchURL(url);
