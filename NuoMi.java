@@ -34,20 +34,19 @@ import net.sf.json.JSONObject;
 
 public class NuoMi {
 	public static String[] REGIONS={"3402","3558","3411","3377","3625","3385","3575","6753","6732","4201","3785","6754","6740","6746",
-            "6743","9606","6739","6741","6755","6735","6745","6736","6742","6749","6750","6747","6751","6738",
-            "6737","6756","6752","6758","6761","6757","6760","6748","6731"};
+                                    "6743","9606","6739","6741","6755","6735","6745","6736","6742","6749","6750","6747","6751","6738",
+                                    "6737","6756","6752","6758","6761","6757","6760","6748","6731"};
     public static String[] REGIONSNAME={"渝北区","江北区","沙坪坝区","南岸区","九龙坡区","渝中区","巴南区","开县","涪陵区","北碚区","大渡口区","云阳县","南川区","璧山县",
-                "铜梁县","大足区","永川区","綦江县","奉节县","黔江区","荣昌县","长寿区","潼南县","丰都县","垫江县","梁平县","武隆县","合川区",
-                "江津区","巫山县","忠县","石柱土家族自治县","彭水苗族土家族自治县","巫溪县","酉阳土家族苗族自治县","城口县","万州区"     
-                };
+                                        "铜梁县","大足区","永川区","綦江县","奉节县","黔江区","荣昌县","长寿区","潼南县","丰都县","垫江县","梁平县","武隆县","合川区",
+                                        "江津区","巫山县","忠县","石柱土家族自治县","彭水苗族土家族自治县","巫溪县","酉阳土家族苗族自治县","城口县","万州区"};
     public static String[] CATEGORY={"1000002","962","364","380","393","880","879","690","460","881","954","878","692","392","439","391",
-             "884","501","389","388","883","877","488","655", "691","390","653","424","451","694","695","652","504",
-              "450","887","654","509","885","454","696","876","889","886","888","693","874","697","327","882","890"};
+                                     "884","501","389","388","883","877","488","655", "691","390","653","424","451","694","695","652","504",
+                                     "450","887","654","509","885","454","696","876","889","886","888","693","874","697","327","882","890"};
 
 
     public static String[] CATEGORYNAME={"今日新单","全部中餐","火锅","小吃快餐","川菜","甜点饮品","辣味美食","干锅/香锅","烧烤/烤肉","蛋糕","咖啡厅/酒吧","烤鱼","创意菜/私房菜","自助餐","海鲜","西餐",
-                 "麻辣烫","韩国料理","日本料理","粤菜","烤鸭","披萨","湘菜","素食","聚会宴请","东南亚菜","西北菜","江浙菜","新疆/清真菜","内蒙菜","客家菜","鲁菜","东北菜",
-                 "北京菜","闽菜","贵州菜","云南菜","山西菜","湖北菜","台湾菜","中东菜","河北菜","海南菜","河南菜","江西菜","徽菜","天津菜","其他美食","其他异国餐饮","其他中餐" };
+                                         "麻辣烫","韩国料理","日本料理","粤菜","烤鸭","披萨","湘菜","素食","聚会宴请","东南亚菜","西北菜","江浙菜","新疆/清真菜","内蒙菜","客家菜","鲁菜","东北菜",
+                                         "北京菜","闽菜","贵州菜","云南菜","山西菜","湖北菜","台湾菜","中东菜","河北菜","海南菜","河南菜","江西菜","徽菜","天津菜","其他美食","其他异国餐饮","其他中餐"};
 
 
     public static String folder="D:/重庆基础数据抓取/基础数据/糯米网/餐馆分类链接/";
@@ -62,15 +61,17 @@ public class NuoMi {
 		String type="";
 		for(int i=0;i<CATEGORY.length;i++){
 			String category=CATEGORY[i];
+			String category_name=CATEGORYNAME[i];
 			for(int j=0;j<REGIONS.length;j++){
 				String region=REGIONS[j];
+				String region_name=REGIONSNAME[j];
 				type=category+"-"+region;
 				
 				String path=folder+type+".txt";
 				File file=new File(path);   
 				if(file.exists()){
 					System.out.println("开始"+type+"区域的抓取");
-					importMongoDB(path,folder);
+					importMongoDB(category_name,region_name,path,folder);
 					
 					String monitor="完成"+type+"区域的抓取";
 					FileTool.Dump(monitor, folder+"monitor.txt", "utf-8");
@@ -79,7 +80,7 @@ public class NuoMi {
 		}					
 	}
 	
-	public static void importMongoDB(String linkfolder,String dumpfolder){
+	public static void importMongoDB(String category_name,String region_name,String linkfolder,String dumpfolder){
 
 
 		try {
@@ -91,7 +92,7 @@ public class NuoMi {
 			//coll.drop();//清空表
 			
 			try {
-				   List<BasicDBObject> objs = getNuoMiContent(linkfolder,dumpfolder);
+				   List<BasicDBObject> objs = getNuoMiContent(category_name,region_name,linkfolder,dumpfolder);
 				   if(objs.size()!=0){
 					   for(int i=0;i<objs.size();i++){
 						   BasicDBObject obj=objs.get(i);
@@ -130,7 +131,7 @@ public class NuoMi {
 	
 	
 
-	public static List<BasicDBObject> getNuoMiContent(String linkfolder,String dumpfolder){
+	public static List<BasicDBObject> getNuoMiContent(String category_name,String region_name,String linkfolder,String dumpfolder){
 		
 		List<BasicDBObject> objs = new ArrayList<BasicDBObject>();
 				
@@ -154,6 +155,11 @@ public class NuoMi {
 				
 				JSONObject obj=new JSONObject();
 				BasicDBObject document=new BasicDBObject();
+				
+				obj.put("restaurant_type", category_name);
+				document.put("restaurant_type", category_name);
+				obj.put("location", region_name);
+				document.put("location", region_name);
 				
 				if (content == null) {
 					FileTool.Dump(link, linkfolder + "Null.txt", "utf-8");
