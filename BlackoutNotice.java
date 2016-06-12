@@ -4,12 +4,24 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import org.htmlparser.util.ParserException;
 
+import com.google.gson.JsonSyntaxException;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.Mongo;
+import com.mongodb.MongoException;
 import com.svail.util.FileTool;
 
 import net.sf.json.JSONObject;
@@ -17,27 +29,84 @@ import net.sf.json.JSONArray;
 
 public class BlackoutNotice {
 
-
-	public static JSONArray CODE = new JSONArray();
-	
-	
-	public static void main(String[] args) throws ParserException {
-		
-		String[] codes=get_orgNoCode(folder+"code_jsonarray.txt");
-		
-		for(int i=0;i<codes.length;i++){
-			
-			run(codes[i],"2016-06-11","2016-06-18");
-		}
-		
-		//
-	}
-	
 	final static String url = "http://www.95598.cn/95598/outageNotice/queryOutageNoticeList?";  
 	final static String params = "orgNo=50404&outageStartTime=2016-06-10&outageEndTime=2016-06-17&scope=&provinceNo=50101&typeCode=&lineName=&pageNow=1&pageCount=10&totalCount=42";
     public static String json="";
     public static String folder="D:/重庆基础数据抓取/基础数据/停电通知/";
     
+	public static JSONArray CODE = new JSONArray();
+	
+	
+	public static void main(String[] args) throws ParserException {
+		
+		run("2016-06-12","2016-06-19");
+		
+	}
+	public static void run(String starttime,String endtime){
+		
+        String[] codes=get_orgNoCode(folder+"code_jsonarray.txt");
+		
+		for(int i=0;i<codes.length;i++){
+			
+			System.out.println("开始"+i+":"+codes[i]+"的抓取:");
+			importMongoDB(codes[i],starttime,endtime,folder);
+		}
+		
+	}
+	public static void importMongoDB(String orgNo,String outageStartTime,String outageEndTime,String folder){
+
+
+		try {
+			Mongo mongo = new Mongo("192.168.6.9", 27017);
+			DB db = mongo.getDB("chongqing");  // 数据库名称
+			
+			
+			DBCollection coll = db.getCollection("BlackoutNotice");
+			//coll.drop();//清空表
+			
+			try {
+				   List<BasicDBObject> objs = getBlackoutNotice(orgNo,outageStartTime,outageEndTime,folder);
+				   if(objs.size()!=0){
+					   int count=0;
+					   for(int i=0;i<objs.size();i++){
+						   BasicDBObject obj=objs.get(i);						
+						   
+						   DBCursor rls =coll.find(obj);
+						   
+						   if(rls == null || rls.size() == 0){
+							   coll.insert(obj);
+							   count++;
+						   }else{
+							   System.out.println("该数据已经存在!");
+						   }
+					   }
+					   System.out.println("共导入"+count+"条数据");
+				   }
+				  
+				   				
+			}catch (JsonSyntaxException e) {
+	    		// TODO Auto-generated catch block
+	    		e.printStackTrace();
+	    	}catch (java.lang.NullPointerException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				//FileTool.Dump(photo.toString(), poiError, "utf-8");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+					
+			
+		}catch (UnknownHostException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		} catch (MongoException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+	
+	}
     public static String[] get_orgNoCode(String folder){
     	Vector<String> poi=FileTool.Load(folder, "utf-8");
     	String line = poi.elementAt(0);
@@ -61,9 +130,9 @@ public class BlackoutNotice {
     	return codes;
     }
     
-    public static void run(String orgNo,String outageStartTime,String outageEndTime){
+    public static List<BasicDBObject> getBlackoutNotice(String orgNo,String outageStartTime,String outageEndTime,String folder) throws UnsupportedEncodingException{
     	
-    	System.out.println("开始"+orgNo+"的抓取:");
+    	List<BasicDBObject> objs=new ArrayList<BasicDBObject>();
     	
     	int mode=0;
     	String content="";
@@ -82,9 +151,16 @@ public class BlackoutNotice {
     	
     	if(mode==0){
     		content=sendPost(url,temp);
-    		paserJson(content,false,folder);
+    		paserJson(content,objs,folder);
     		System.out.println("第1页获得！");
     		mode++;
+    		
+    		try {
+				Thread.sleep(5000 * ((int) (Math.max(1, Math.random() * 3))));
+			} catch (final InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
     	}
     	
         if(mode>0){
@@ -100,14 +176,21 @@ public class BlackoutNotice {
         			page="&pageNow="+pageNow+"&pageCount=10&totalCount="+totalCount;
                 	params=temp+page;
                 	content=sendPost(url,params);
-                	paserJson(content,false,folder); 
+                	paserJson(content,objs,folder); 
                 	System.out.println("第"+pageNow+"页获得！");
+                	
+                	try {
+						Thread.sleep(5000 * ((int) (Math.max(1, Math.random() * 3))));
+					} catch (final InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
             	}
         		      			
         	}
     		
     	}
-    	
+    	return objs;
     }
     /**
      * 获取每条json数据的页面信息
@@ -137,28 +220,56 @@ public class BlackoutNotice {
     /**
      * 获取json数据中的每条停电通知
      * @param folder
+     * @throws UnsupportedEncodingException 
      */
-    public static void paserJson(String folder,boolean file,String dumpfolder){
-    	
-    	String json="";
-    	if(file){
-    		Vector<String> jsons=FileTool.Load(folder, "utf-8");
-        	json=jsons.elementAt(0);
-    	}else{
-    		json=folder;
-    	}
-    	
-    	
-    	JSONObject obj=JSONObject.fromObject(json);
-    	
-    	String today=obj.getString("today");
+    public static void paserJson(String json,List<BasicDBObject> objs,String dumpfolder) throws UnsupportedEncodingException{
+      	    	
+    	JSONObject obj=JSONObject.fromObject(json);   	
     	
     	String seleList=obj.getString("seleList");
     	JSONArray seleList_arr=JSONArray.fromObject(seleList);
     	if(seleList_arr.size()>0){
     		  for(int i=0;i<seleList_arr.size();i++){
     			    JSONObject seleList_obj = seleList_arr.getJSONObject(i);  // 遍历 jsonarray 数组，把每一个对象转成 json 对象
-    			   // System.out.println(seleList_obj.toString()) ;  // 得到 每个对象中的属性值
+    			    JSONObject scope_coordinate=new JSONObject();
+    			    
+    			   
+
+    			    //将JSONObject转BasicDBObject
+    		        BasicDBObject document = new BasicDBObject();    		      
+					Iterator<String> joKeys = seleList_obj.keys();  
+    		        while(joKeys.hasNext()){  
+    		            String key = joKeys.next();
+    		            Object value=seleList_obj.get(key);
+    		            if(value.equals("null")){
+    		            	value="";
+    		            }
+    		            document.put(key, value);  
+    		        } 
+    		        
+    		        //对scope中的地址进行地理编码
+    		        String scope="";
+    		        JSONArray scope_box=new JSONArray();
+    			    if(seleList_obj.containsKey("scope")){
+    			    	scope=seleList_obj.getString("scope");
+    			    	if(scope.indexOf(",")!=-1){
+    			    		String[] address=scope.split(",");
+    			    		for(int j=0;j<address.length;j++){
+    			    			scope_coordinate=GeoCode.AddressMatch(address[j],dumpfolder,seleList_obj);
+    			    			scope_coordinate.put("address", address[j]);
+    			    			scope_box.add(scope_coordinate);
+    			    		}
+    			    	}else if(scope.length()!=0&&scope.indexOf(",")==-1){
+    			    		scope_coordinate=GeoCode.AddressMatch(scope,dumpfolder,seleList_obj);
+    			    		scope_coordinate.put("address", scope);
+    			    		scope_box.add(scope_coordinate);
+    			    	}
+    			    }
+    			    seleList_obj.put("scope_box", scope_box);
+    			    document.put("scope_box", scope_box);
+
+    		        System.out.println(document.toString());
+    		        objs.add(document);    		        
     			    FileTool.Dump(seleList_obj.toString(), dumpfolder+"停电通知.txt", "utf-8");
     			    
     		}
