@@ -226,12 +226,16 @@ public class GeoCode {
 													}
 													else
 													{
+														obj.put("coordinate", "");
+														obj.put("region", "");
 														FileTool.Dump(poi.toString(), folder.replace(".txt", "") + "_nonPostalCoor1.txt", "UTF-8");
 
 													}
 												}
 											}else{
 												System.out.println(index+":"+query+"-false!");
+												obj.put("coordinate", "");
+												obj.put("region", "");
 												FileTool.Dump(poi.toString(), folder.replace(".txt", "") + "_query-false.txt", "UTF-8");
 											}
 										}
@@ -393,12 +397,16 @@ public class GeoCode {
 													}
 													else
 													{
+														obj.put("coordinate", "");
+														obj.put("region", "");
 														FileTool.Dump(poi.toString(), folder.replace(".txt", "") + "_nonPostalCoor1.txt", "UTF-8");
 
 													}
 												}
 											}else{
 												System.out.println(query+"-false!");
+												obj.put("coordinate", "");
+												obj.put("region", "");
 												FileTool.Dump(poi.toString(), folder.replace(".txt", "") + "_query-false.txt", "UTF-8");
 											}
 										}
