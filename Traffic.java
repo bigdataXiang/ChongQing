@@ -51,7 +51,12 @@ public class Traffic {
 					   int count=0;
 					   for(int i=0;i<objs.size();i++){
 						   BasicDBObject obj=objs.get(i);
-						   DBCursor rls =coll.find(obj);
+						   
+						   BasicDBObject index=new BasicDBObject();
+						   Object news=obj.get("news");
+						   index.put("news", news);
+						   
+						   DBCursor rls =coll.find(index);
 						   if(rls == null || rls.size() == 0){
 							   coll.insert(obj);
 							   count++;
@@ -129,8 +134,8 @@ public class Traffic {
 									if(str_html.indexOf("重庆交通")!=-1){
 										
 										String id=str_html.replace(":", "");
-										obj.put("id", str_html);
-										document.put("id", str_html);
+										obj.put("id", id);
+										document.put("id", id);
 									}
                                	}
 							}
