@@ -48,16 +48,18 @@ public class Traffic {
 			try {
 				   List<BasicDBObject> objs = getTrafficInfo(link,folder);
 				   if(objs.size()!=0){
+					   int count=0;
 					   for(int i=0;i<objs.size();i++){
 						   BasicDBObject obj=objs.get(i);
 						   DBCursor rls =coll.find(obj);
 						   if(rls == null || rls.size() == 0){
 							   coll.insert(obj);
+							   count++;
 						   }else{
 							   System.out.println("该数据已经存在!");
 						   }
 					   }
-					   System.out.println("数据导入完成!");
+					   System.out.println("导入"+count+"条数据！");
 				   }
 				  
 				   				
