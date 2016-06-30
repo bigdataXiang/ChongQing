@@ -1,6 +1,8 @@
 package com.svail.chongqing;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Vector;
 
 import org.htmlparser.NodeFilter;
@@ -13,6 +15,13 @@ import org.htmlparser.nodes.TagNode;
 import org.htmlparser.util.NodeList;
 import org.htmlparser.util.ParserException;
 
+import com.google.gson.JsonSyntaxException;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.Mongo;
+import com.mongodb.MongoException;
 import com.svail.util.FileTool;
 import com.svail.util.Tool;
 
@@ -23,6 +32,60 @@ public class RecruitStudents {
 	public static void main(String[] args) throws IOException {
 		//run();
 		getContent("D:/重庆基础数据抓取/基础数据/招生/重庆市教育委员会-招生-link.txt");
+	}
+	
+	public static void importMongoDB(){
+		try {
+			Mongo mongo = new Mongo("192.168.6.9", 27017);
+			DB db = mongo.getDB("chongqing");  // 数据库名称
+			
+			
+			DBCollection coll = db.getCollection("BlackoutNotice");
+			//coll.drop();//清空表
+			
+			try {
+				   List<BasicDBObject> objs = getContent();
+				   if(objs.size()!=0){
+					   int count=0;
+					   for(int i=0;i<objs.size();i++){
+						   BasicDBObject obj=objs.get(i);						
+						   
+						   DBCursor rls =coll.find(obj);
+						   
+						   if(rls == null || rls.size() == 0){
+							   coll.insert(obj);
+							   count++;
+						   }else{
+							   System.out.println("该数据已经存在!");
+						   }
+					   }
+					   System.out.println("共导入"+count+"条数据");
+				   }
+				  
+				   				
+			}catch (JsonSyntaxException e) {
+	    		// TODO Auto-generated catch block
+	    		e.printStackTrace();
+	    	}catch (java.lang.NullPointerException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				//FileTool.Dump(photo.toString(), poiError, "utf-8");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+					
+			
+		}catch (UnknownHostException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		} catch (MongoException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}
+	
+	
 	}
 	public static void getContent(String folder){
  
@@ -46,12 +109,13 @@ public class RecruitStudents {
 					NodeFilter filter = new AndFilter(new TagNameFilter("div"),new HasAttributeFilter("class", "c_content_overflow"));
 					NodeList nodes = parser.extractAllNodesThatMatch(filter);
 					
-					System.out.println(nodes.size());
+					//System.out.println(nodes.size());
 					if (nodes.size() != 0) {
 						for (int n = 0; n < nodes.size(); n++) {
 							TagNode no = (TagNode) nodes.elementAt(n);	
 							String contents=no.toPlainTextString().replace(" ", "").replace("\r\n", "").replace("\t", "").replace("\n", "");						
 							obj.put("content", contents);
+							System.out.println(obj.toString());
 							FileTool.Dump(obj.toString(), folder.replace(".txt", "") + "-content.txt", "utf-8");
 						}
 					}
