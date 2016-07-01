@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.htmlparser.NodeFilter;
 import org.htmlparser.Parser;
@@ -51,7 +54,24 @@ public class NuoMi {
 
     public static String folder="D:/重庆基础数据抓取/基础数据/糯米网/餐馆分类链接/";
 	public static void main(String[] args) throws IOException {
-		run();
+		//timingCrawl("21:00:00");
+		getNewMenuToday();
+	}
+	public static void timingCrawl(String time){		  
+    	ScheduledExecutorService service = Executors.newScheduledThreadPool(4);          
+    	long oneDay = 24 * 60 * 60 * 1000;
+    	long timemillis=Tool.getTimeMillis(time);
+    	long timenow=System.currentTimeMillis();
+    	long initDelay = timemillis - timenow;  
+    	initDelay = initDelay > 0 ? initDelay : oneDay + initDelay;  
+
+        Runnable trafficTask = new Runnable(){  
+            public void run() { 
+            	System.out.println("开始定期抓取");
+            	run();
+            }  
+        };  
+    	service.scheduleAtFixedRate(trafficTask, initDelay, 24* 60 * 60 * 1000, TimeUnit.MILLISECONDS);//scheduleAtFixedRate(TimerTask task,long delay,long period) 方法用于安排指定的任务进行重复的固定速率执行，在指定的延迟后开始。    
 	}
 	/**
 	 * 运行糯米网数据	
@@ -78,6 +98,15 @@ public class NuoMi {
 				}
 			}
 		}					
+	}
+	public static void getNewMenuToday(){
+		for(int i=0;i<REGIONS.length;i++){
+			String region=REGIONS[i];
+			getRestaurantLink("https://cq.nuomi.com/1000002/"+region,folder);
+
+		}
+
+
 	}
 	
 	public static void importMongoDB(String category_name,String region_name,String linkfolder,String dumpfolder){
@@ -109,7 +138,7 @@ public class NuoMi {
 			}catch (JsonSyntaxException e) {
 	    		// TODO Auto-generated catch block
 	    		e.printStackTrace();
-	    	}catch (java.lang.NullPointerException e1) {
+	    	}catch (NullPointerException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 				//FileTool.Dump(photo.toString(), poiError, "utf-8");
@@ -472,8 +501,9 @@ public class NuoMi {
 					for (int n = 0; n < nodes1.size(); n++) {
 						TagNode no1 = (TagNode) nodes1.elementAt(n);
 						tur = no1.getAttribute("href");
-						//System.out.println(tur);
-						FileTool.Dump(tur, "D:/重庆基础数据抓取/基础数据/糯米网/餐馆分类链接/"+folder+".txt", "utf-8");
+						System.out.println(tur);
+						
+						FileTool.Dump(tur, folder+"newmenue.txt", "utf-8");
 					}
 				}							
 			}
